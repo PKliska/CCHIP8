@@ -84,7 +84,59 @@ static void test_cls(void** state){
     for(int i=0;i<32;i++)
         for(int j=0;j<64;j++)
             assert_false(chip->display[i][j]);
+}
 
+static void test_ld1(void** state){
+    chip8* chip = *state;
+
+    char program[] = {0x65, 0x56, // ld V5, 0x56
+                      0x65, 0x43, // ld V5, 0x43
+                        };
+    chip8_load_program(chip, program, sizeof program);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0x5], 0x56);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0x5], 0x43);
+}
+static void test_ld2(void** state){
+    chip8* chip = *state;
+
+    chip->V[0x3] = 78;
+    chip->V[0x4] = 35;
+
+    char program[] = {0x87, 0x30, // ld V7, V3
+                      0x83, 0x40, // ld V3, V4
+                      0x84, 0x70, // ld V4, V7
+                        };
+    chip8_load_program(chip, program, sizeof program);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0x7], 78);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0x3], 35);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0x4], 78);
+}
+static void test_ld3(void** state){
+    chip8* chip = *state;
+
+    chip->I = 0x345;
+
+    char program[] = {0xA7, 0x32, // ld I, 0x732
+                      };
+    chip8_load_program(chip, program, sizeof program);
+    chip8_step(chip);
+    assert_int_equal(chip->I, 0x732);
+}
+static void test_ld4(void** state){
+    chip8* chip = *state;
+
+    chip8_timer_set(&chip->DT, 134);
+
+    char program[] = {0xFA, 0x07, // ld VA, DT
+                      };
+    chip8_load_program(chip, program, sizeof program);
+    chip8_step(chip);
+    assert_int_equal(chip->V[0xA], 134);
 }
 
 int main(){
@@ -95,7 +147,13 @@ int main(){
         cmocka_unit_test(test_se1),
         cmocka_unit_test(test_se2),
         cmocka_unit_test(test_call),
-        cmocka_unit_test(test_cls)
+        cmocka_unit_test(test_cls),
+
+        cmocka_unit_test(test_ld1),
+        cmocka_unit_test(test_ld2),
+        cmocka_unit_test(test_ld3),
+        cmocka_unit_test(test_ld4)
+
     };
     return cmocka_run_group_tests(tests, setup, teardown);
 }
